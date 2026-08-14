@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# 🛍️ Best4u - Modern Affiliate E-commerce Platform
 
-## Getting Started
+**Best4u** ek high-performance, full-stack affiliate e-commerce web application hai jise **Next.js (App Router)**, **MongoDB Atlas**, aur **Tailwind CSS** par banaya gaya hai. Yeh platform users ko curated product recommendations explore karne, live currency convert karne, aur advanced search & filtering ke zariye best deals dhoondne ki sahulat deta hai, jabke admin ke liye ek powerful analytics dashboard bhi provide karta hai.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Key Features & Architecture
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 1. 🔍 Advanced Search, Debouncing & Spelling Suggestions
+* **Debounced Search Input:** Search bar par user jab type karta hai, toh har keystroke par request bhejne ki bajaye ek intelligent debounce timer (`300ms`) lagaya gaya hai jo unnecessary API calls ko rokta hai.
+* **Auto-Suggestions Dropdown:** 2 ya us se zyada characters type karne par live product suggestions (thumbnail, title, price) dropdown mein show hoti hain.
+* **Typo & Spelling Tolerance:** MongoDB Atlas Full-Text Search Index aur custom query matching ki wajah se agar user se thori spelling mistake bhi ho jaye, tab bhi relevant results show ho jatay hain.
+* **Clear Search State:** Search active hone par sidebar categories hide ho kar ek clean "Clear Search" button provide karta hai jo UX ko seamless banata hai.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+### 2. ⚡ Pagination, Filtering & Sorting
+* **Server-Side Pagination:** Shop page par `mongoose-paginate-v2` ya custom limit/page logic ke zariye infinite scroll / load more features handle kiye gaye hain.
+* **Multi-Criteria Filtering:** Categories, Search queries, aur Sort options (`Newest`, `Price: Low to High`, `Price: High to Low`, `Featured`) URL query parameters (`searchParams`) ke sath fully synchronized hain.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. 🗄️ Database & Indexing (MongoDB Atlas)
+* **Atlas Full-Text Search Index:** Products ke `title` aur `tags` fields par text indexes (`productSchema.index({ title: 'text', tags: 'text' })`) configure kiye gaye hain taake database queries blazing fast rahen.
+* **Lean Queries & Parallel Fetching:** Server components mein `Promise.all` aur `.lean()` use karke database overhead ko minimize kiya gaya hai.
 
-## Learn More
+### 4. 📦 Amazon Product Integration & Imports
+* **Flexible Import System:** Admin panel ke zariye products ko 3 tareeqon se add kiya ja sakta hai:
+  1. **Bulk Import:** Multiple products ek sath JSON/API ke zariye ingest karna.
+  2. **Single Import:** Direct product link ya ID se fetch karna.
+  3. **Manual Insert:** Custom title, description, features, aur affiliate links ke sath manual form.
 
-To learn more about Next.js, take a look at the following resources:
+### 5. ☁️ Cloudinary Media & Garbage Handling
+* Cloudinary media storage integration ke sath images upload hoti hain.
+* Admin panel se jab koi product delete hota hai, toh uske sath associated cloud media assets ko manage/clean (garbage handling) karne ka mechanism backend APIs mein built-in hai.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 6. 📊 Admin Analytics & Click Tracking
+* **Click Tracker Model:** User jab bhi "View Deal" par click karta hai, system click count record karta hai (`ClickTracker`).
+* **Interactive Line & Bar Charts:** Recharts library ka use karke Admin Dashboard par **Product Clicks Analytics** ke liye aakash-jaisi smooth glowing **Line Chart (AreaChart)** aur Category Distribution ke liye **Bar Chart** banaye gaye hain, sath hi time-range filters (`Last 24h`, `7 Days`, `1 Month`, `All Time`) bhi available hain.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 7. 🌐 Multi-Currency Support
+* Zustand state management (`useCurrencyStore`) ke zariye user globally currency switch kar sakta hai (`USD`, `PKR`, `EUR`, `GBP`, etc.), aur saare products ki prices live conversion rates ke mutabiq automatically update ho jati hain.
 
-## Deploy on Vercel
+### 8. 🛡️ Dynamic SEO & Schema.org (JSON-LD)
+* **Global & Page-level Metadata:** Admin panel ki `SiteSettings` aur individual Product schemas se dynamic meta titles aur descriptions generate hotay hain.
+* **Rich Snippets (JSON-LD):** Product pages par Schema.org structured data (`Product`, `Offer`, `AggregateRating`) inject kiya gaya hai taake Google search results mein Star Ratings aur Price directly show hon.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack
+
+* **Frontend & Backend:** Next.js (App Router, Server & Client Components)
+* **Styling:** Tailwind CSS, Lucide Icons, React Icons
+* **Database:** MongoDB Atlas, Mongoose ODM
+* **State Management:** Zustand
+* **Validation & Forms:** Zod, React Hook Form
+* **Charts:** Recharts
+* **Deployment:** Vercel (Serverless Functions with ISR & Dynamic API routes)
+
+---
+
+## 📡 API Routes Documentation
+
+| Endpoint | Method | Description |
+| :--- | :---: | :--- |
+| `/api/shop` | `GET` | Fetches filtered, sorted, and paginated products with search support (`force-dynamic`). |
+| `/api/categories` | `GET` | Retrieves all product categories for the shop sidebar and home slider. |
+| `/api/search/suggest` | `GET` | Returns quick product suggestions for the navbar search bar debounce input. |
+| `/api/analytics` | `GET` | Aggregates product click metrics filtered by time range, limit, and category. |
+| `/api/categories/[id]` | `PUT/DELETE` | Admin routes for updating or removing product categories. |
+
+---
+
