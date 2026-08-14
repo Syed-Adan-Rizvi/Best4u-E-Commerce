@@ -19,7 +19,7 @@ export default function ContactPage() {
     
     // 🟢 Apna Web3Forms Access Key yahan dalein (Web3Forms.com se free milti hai)
     // Aap apni email par sign up karke free key generate kar sakte hain.
-    formData.append("access_key", "YOUR_WEB3FORMS_ACCESS_KEY_HERE");
+    formData.append("access_key", "567394cc-f35d-4a17-9eae-acf43c907ad6");
 
     try {
       const response = await fetch("https://api.web3forms.com/submit", {

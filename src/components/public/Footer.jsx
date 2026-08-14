@@ -15,7 +15,6 @@ import {
 
 export default function Footer({ settings }) {
   
-  // 🌟 Helper Function: Automatically Map Platform Name to Icon
   const getSocialIcon = (platformName, customIconUrl) => {
     if (customIconUrl && customIconUrl.startsWith("http")) {
       return <img src={customIconUrl} alt={platformName} className="w-4 h-4 object-contain" />;
@@ -33,23 +32,26 @@ export default function Footer({ settings }) {
     if (name.includes("linkedin")) return <FaLinkedin size={18} />;
     if (name.includes("email") || name.includes("mail")) return <Mail size={18} />;
     
-    return <LinkIcon size={18} />; // Default Icon
+    return <LinkIcon size={18} />; 
   };
 
   return (
-    // 🟢 Background Cream-Dark set kar diya
     <footer className="bg-cream border-t border-cream-dark shadow-sm pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* 🟢 Tablet Grid Fix: md:grid-cols-2 kar diya taake tablet pe mobile jaisa clean wrap aaye */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-12">
           
           {/* 1. Brand Section */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-sage rounded-xl flex items-center justify-center text-white">
-                <ShoppingBag size={18} />
-              </div>
+              {/* 🟢 FIX: Dynamic Logo Support for Footer */}
+              {settings?.siteLogo ? (
+                <img src={settings.siteLogo} alt={settings?.siteName || "Logo"} className="w-8 h-8 object-contain rounded-xl" />
+              ) : (
+                <div className="w-8 h-8 bg-sage rounded-xl flex items-center justify-center text-white">
+                  <ShoppingBag size={18} />
+                </div>
+              )}
               <span className="text-xl font-serif font-bold text-sage-dark tracking-tight">
                 {settings?.siteName || "Best4u"}<span className="text-sage">.</span>
               </span>
@@ -81,13 +83,13 @@ export default function Footer({ settings }) {
             </ul>
           </div>
 
-          {/* 4. Social Links (Dynamic from DB) */}
+          {/* 4. Social Links */}
           <div>
             <h3 className="text-xs font-bold text-sage-dark uppercase tracking-wider mb-4">Follow Us</h3>
-            <p className="text-sm text-sage-light mb-4">Stay updated with our latest deals and finds on social media.</p>
+            <p className="text-sm text-sage-light mb-4">Stay updated with our latest deals and finds.</p>
             <div className="flex flex-wrap items-center gap-3">
               
-              {settings?.socialLinks && settings.socialLinks.length > 0 ? (
+              {settings?.socialLinks && settings.socialLinks.length > 0 && (
                 settings.socialLinks.map((link, index) => (
                   <a 
                     key={index}
@@ -100,8 +102,22 @@ export default function Footer({ settings }) {
                     {getSocialIcon(link.platformName, link.icon)}
                   </a>
                 ))
-              ) : (
-                <p className="text-xs text-sage-light">No social links added yet.</p>
+              )}
+
+              {/* 🟢 FIX: Automatically add Mailto icon if contactEmail is present */}
+              {settings?.contactEmail && (
+                <a 
+                  href={`mailto:${settings.contactEmail}`} 
+                  className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-sage-dark hover:bg-sage hover:text-white transition-all shadow-sm"
+                  aria-label="Email Us"
+                  title={`Email us at ${settings.contactEmail}`}
+                >
+                  <Mail size={18} />
+                </a>
+              )}
+
+              {(!settings?.socialLinks || settings.socialLinks.length === 0) && !settings?.contactEmail && (
+                <p className="text-xs text-sage-light">No contact info added yet.</p>
               )}
 
             </div>
@@ -109,7 +125,6 @@ export default function Footer({ settings }) {
 
         </div>
 
-        {/* Bottom Copyright & Disclaimer */}
         <div className="pt-8 border-t border-cream flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-sage-light text-center md:text-left">
             © {new Date().getFullYear()} {settings?.siteName || "Best4u"}. As an Amazon Associate we earn from qualifying purchases.

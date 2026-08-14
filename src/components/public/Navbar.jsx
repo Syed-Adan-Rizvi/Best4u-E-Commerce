@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, Menu, X, ShoppingBag, TrendingUp, Layers, ShieldCheck, ChevronDown, Loader2 } from "lucide-react"; // Flame hata kar TrendingUp import kar liya
+import { Search, Menu, X, ShoppingBag, TrendingUp, Layers, ShieldCheck, ChevronDown, Loader2 } from "lucide-react"; 
 import { useCurrencyStore, ALL_CURRENCIES } from "@/store/useCurrencyStore";
 import { formatPrice } from "@/lib/formatPrice";
 
@@ -93,12 +93,9 @@ export default function Navbar({ settings }) {
     }
   };
 
-  // 🟢 FIXED: Active State Logic
   const topNavLinks = [
     { name: "Home", href: "/", isActive: pathname === "/" },
-    // Agar pathname '/shop' hai aur category waghera ho bhi toh wo '/shop' ke andar hi ginna jayega
     { name: "All Products", href: "/shop", isActive: pathname.startsWith("/shop") },
-    // 🟢 PATHNAME === "/trending" se ye properly underline ho jayega jab koi is page par jayega
     { name: "Trending", href: "/trending", isActive: pathname === "/trending", icon: <TrendingUp size={16} className="text-[#FF9900]" /> },
   ];
   
@@ -120,16 +117,10 @@ export default function Navbar({ settings }) {
                 <ShoppingBag size={20} />
               </div>
             )}
-            {!settings?.siteLogo && (
-              <span className="text-xl lg:text-2xl font-serif font-bold text-sage-dark tracking-tight">
-                {settings?.siteName || "Best4u"}<span className="text-sage">.</span>
-              </span>
-            )}
-            {settings?.siteLogo && (
-               <span className="text-xl lg:text-2xl font-serif font-bold text-sage-dark tracking-tight hidden sm:block">
-                 {settings?.siteName || "Best4u"}<span className="text-sage">.</span>
-               </span>
-            )}
+            {/* 🟢 FIX: Mobile par bhi naam nazar aayega. "hidden sm:block" hata diya. */}
+            <span className="text-lg sm:text-xl lg:text-2xl font-serif font-bold text-sage-dark tracking-tight">
+              {settings?.siteName || "Best4u"}<span className="text-sage">.</span>
+            </span>
           </Link>
 
           <div className="hidden lg:flex flex-1 w-full max-w-4xl mx-4 xl:mx-10 relative">
@@ -179,7 +170,8 @@ export default function Navbar({ settings }) {
           <div className="flex items-center gap-2 lg:gap-6">
             
             <div className="relative z-50 flex items-center gap-1 sm:gap-2" ref={currencyRef}>
-              <span className="text-[10px] lg:text-[11px] font-bold text-sage-light uppercase tracking-wider hidden sm:block">Currency:</span>
+              {/* 🟢 FIX: "Currency:" ko "Select Currency:" kar diya tablet ke liye */}
+              <span className="text-[10px] lg:text-[11px] font-bold text-sage-light uppercase tracking-wider hidden sm:block">Select Currency:</span>
               <div onClick={() => setIsCurrencyOpen(!isCurrencyOpen)} className="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-white border border-cream-dark rounded-lg cursor-pointer hover:border-sage transition-colors shadow-sm">
                 <span className="text-xs lg:text-sm font-bold text-sage-dark">{currency}</span>
                 <ChevronDown size={14} className="text-sage-light" />
