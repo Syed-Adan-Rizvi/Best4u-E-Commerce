@@ -1,4 +1,75 @@
+/* app/globals.css */
 @import "tailwindcss";
+
+@theme {
+  --color-cream: #FDFBF7;
+
+  --color-cream-dark: #F2EBE1;
+
+
+  /* Darker & Richer Sage Palette */
+  --color-sage: #5A7363;        /* Main Darker Sage Green */
+  --color-sage-light: #8FA397;  /* Background blobs aur hover ke liye */
+  --color-sage-dark: #3A4D41;   /* Headings aur deep contrasts ke liye */
+}
+
+/* 🌟 THE MAGIC FIX: Scale entire website to 90% for a premium, compact look */
+@layer base {
+  html {
+    font-size: 90%; /* Default 100% (16px) hota hai, ab approx 14.4px ho jayega */
+  }
+}
+
+/* src/app/globals.css mein add karein */
+
+/* 🟢 GLOBAL THEME SCROLLBARS */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px; /* For horizontal scrollbars */
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF8F5; /* Cream background */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #A4B5A9; /* Light Sage Green */
+  border-radius: 10px;
+  border: 2px solid #FAF8F5; /* Matches track background for a padded look */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5A7363; /* Dark Sage Green on hover */
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #A4B5A9 #FAF8F5;
+}
+
+/* Utilities to hide scrollbar if explicitly needed (like in thumbnails) */
+.hide-scrollbar::-webkit-scrollbar { 
+  display: none; 
+}
+.hide-scrollbar { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* @import "tailwindcss";
 
 :root {
   --background: #ffffff;
@@ -23,4 +94,4 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
-}
+} */
