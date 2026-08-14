@@ -101,30 +101,39 @@ const productZodSchema = z.object({
   // =================================================================
 // 📖 GET STORY: "Pagination + Full Database Search (Title & ASIN)"
 // =================================================================
+// =================================================================
+// 📖 GET STORY: "Pagination + Single Product Fetch"
+// =================================================================
 export async function GET(req) {
   try {
     console.log("🚀 [GET /api/products] Products fetch karne ki request aayi!");
     await connectDB();
 
-    // 🌟 URL se parameters uthao
     const { searchParams } = new URL(req.url);
+    
+    // 🌟 NAYA LOGIC: Agar URL mein 'id' aati hai, toh sirf 1 product bhejo!
+    const singleId = searchParams.get("id");
+    if (singleId) {
+      const product = await Product.findById(singleId).populate('category', 'name slug');
+      if (!product) return NextResponse.json({ success: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json({ success: true, product }, { status: 200 });
+    }
+
+    // ⚙️ BAQI PURANA PAGINATION LOGIC
     const page = parseInt(searchParams.get("page")) || 1; 
     const limit = parseInt(searchParams.get("limit")) || 10; 
-    const search = searchParams.get("search") || ""; // 🔍 Naya search param
+    const search = searchParams.get("search") || ""; 
 
-    // 🧠 MONGODB SEARCH LOGIC (Regex)
     let query = {};
     if (search) {
-      // Agar user ASIN ya Title likhe, dono mein dhoondega
       query = {
         $or: [
           { title: { $regex: search, $options: "i" } },
-          { externalId: { $regex: search, $options: "i" } } // ASIN search
+          { externalId: { $regex: search, $options: "i" } } 
         ]
       };
     }
 
-    // ⚙️ Pagination options
     const options = {
       page: page,
       limit: limit,

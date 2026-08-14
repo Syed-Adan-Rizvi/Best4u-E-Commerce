@@ -74,6 +74,9 @@ export default function EditProductPage({ params }) {
   // =================================================================
   // 📡 1. INITIAL DATA FETCH (Product & Categories)
   // =================================================================
+  // =================================================================
+  // 📡 1. INITIAL DATA FETCH (Product & Categories)
+  // =================================================================
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -84,14 +87,12 @@ export default function EditProductPage({ params }) {
         const catData = await catRes.json();
         if (catData.success) setCategories(catData.categories);
 
-        // 2. Product Data layen
-        // Note: Hum list API use kar rahe hain aur ID se filter kar rahe hain (agar aapki GET /id API nahi hai)
-        // Agar aapki GET /api/products/[id] bani hui hai, toh yahan wo use karein.
-        const prodRes = await fetch(`/api/products`); 
+        // 2. 🟢 NAYA LOGIC: Sirf specific ID wala product fetch karein
+        const prodRes = await fetch(`/api/products?id=${productId}`); 
         const prodData = await prodRes.json();
         
         if (prodData.success) {
-          const product = prodData.products.find(p => p._id === productId);
+          const product = prodData.product; // .find() ki zaroorat khatam, direct object mil gaya!
           
           if (!product) {
             toast.error("Product nahi mila!");
@@ -118,13 +119,16 @@ export default function EditProductPage({ params }) {
             isActive: product.isActive,
             metaTitle: product.metaTitle || "",
             metaDescription: product.metaDescription || "",
-            tags: product.tags?.join(", ") || "", // Backend Array to Frontend String
+            tags: product.tags?.join(", ") || "", 
             features: product.features || [],
           });
 
           // Set Media
           setExistingImages(product.images || []);
           setExistingVideo(product.videoUrl || "");
+        } else {
+           toast.error(prodData.error || "Product load nahi ho saka");
+           router.push("/admin/products");
         }
       } catch (error) {
         toast.error("Data load karne mein masla aaya");
