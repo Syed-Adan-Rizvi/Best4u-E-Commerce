@@ -130,7 +130,7 @@ export default function ContactPage() {
                       type="text" 
                       name="name" 
                       required 
-                      placeholder="e.g. John Doe"
+                      placeholder="e.g. Adan Rizvi"
                       className="w-full px-4 py-3 rounded-xl border border-cream-dark bg-cream/50 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent text-sm text-sage-dark"
                     />
                   </div>
@@ -141,7 +141,7 @@ export default function ContactPage() {
                       type="email" 
                       name="email" 
                       required 
-                      placeholder="e.g. john@example.com"
+                      placeholder="e.g. adan@gmail.com"
                       className="w-full px-4 py-3 rounded-xl border border-cream-dark bg-cream/50 focus:outline-none focus:ring-2 focus:ring-sage focus:border-transparent text-sm text-sage-dark"
                     />
                   </div>
