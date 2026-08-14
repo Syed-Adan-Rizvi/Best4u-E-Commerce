@@ -12,6 +12,7 @@ import {
   RotateCcw
 } from "lucide-react"; 
 import ProductCard from "@/components/public/ProductCard";
+import Link from "next/link";
 
 export default function ShopPage() {
   const router = useRouter();
@@ -246,12 +247,29 @@ export default function ShopPage() {
         }
       `}</style>
 
+      {/* 🟢 HEADER WITH DYNAMIC BREADCRUMBS */}
       <div className="bg-transparent py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* 🟢 DYNAMIC BREADCRUMB ADDED HERE */}
+          <div className="flex items-center gap-2 text-xs font-medium text-sage-light mb-5">
+            <Link href="/" className="hover:text-sage transition-colors">Home</Link>
+            <span>›</span>
+            <Link href="/shop" className={`hover:text-sage transition-colors ${!urlCategory && !urlSearch ? 'text-sage-dark font-bold pointer-events-none' : ''}`}>Shop</Link>
+            
+            {(urlCategory || urlSearch) && <span>›</span>}
+            
+            {urlSearch ? (
+              <span className="text-sage-dark font-bold truncate max-w-[200px] sm:max-w-xs">Search: "{urlSearch}"</span>
+            ) : urlCategory ? (
+              <span className="text-sage-dark font-bold capitalize truncate max-w-[200px] sm:max-w-xs">{urlCategory.replace(/-/g, " ")}</span>
+            ) : null}
+          </div>
+
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-sage-dark mb-2">
             {urlSearch ? `Curated results for "${urlSearch}"` : 
              urlSort !== "None" ? `${urlSort}` :
-             urlCategory ? `Category: ${urlCategory.replace("-", " ")}` : 
+             urlCategory ? `Category: ${urlCategory.replace(/-/g, " ")}` : 
              "Mindful Product Catalog"}
           </h1>
           <p className="text-sage-light text-sm sm:text-base capitalize">

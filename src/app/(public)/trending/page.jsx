@@ -59,9 +59,17 @@ export default function TrendingPage() {
         }
       `}</style>
 
-      {/* 🟢 CLEAN MINIMALIST HEADER (Like Shop Page) */}
+      {/* 🟢 CLEAN MINIMALIST HEADER WITH BREADCRUMB */}
       <div className="bg-transparent py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* 🟢 BREADCRUMB ADDED HERE */}
+          <div className="flex items-center gap-2 text-xs font-medium text-sage-light mb-5">
+            <Link href="/" className="hover:text-sage transition-colors">Home</Link>
+            <span>›</span>
+            <span className="text-sage-dark font-bold">Trending Deals</span>
+          </div>
+
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl sm:text-4xl font-serif font-bold text-sage-dark">
               Trending Deals

@@ -76,7 +76,7 @@ export default async function TrendingDeals() {
             ))}
             
             <div className="snap-start flex-shrink-0 w-[150px] sm:w-[200px] flex items-center justify-center pl-4 pr-8">
-              <Link href="/deals" className="flex flex-col items-center justify-center gap-4 group h-full">
+              <Link href="/trending" className="flex flex-col items-center justify-center gap-4 group h-full">
                 <div className="w-16 h-16 rounded-full bg-sage/10 flex items-center justify-center group-hover:bg-sage transition-colors shadow-sm">
                   <ArrowRight size={24} className="text-sage group-hover:text-white transition-colors" />
                 </div>
