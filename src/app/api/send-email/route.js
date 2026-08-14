@@ -13,6 +13,9 @@ async function checkAuth(req) {
   return !!token;
 }
 
+// 🟢 GET/POST APIs ke liye Vercel cache bypass fix
+export const dynamic = "force-dynamic";
+
 export async function POST(req) {
   try {
     console.log("🚀 [POST /api/send-email] Email campaign bhejne ki request aayi!");
@@ -63,42 +66,31 @@ export async function POST(req) {
       </div>
     `;
 
-    // 🚀 SEND EMAILS
-    // const { data, error } = await resend.emails.send({
-    //   from: 'Best4u <onboarding@resend.dev>', 
-    //   to: ['delivered@resend.dev'], 
-    //   bcc: emailsList, 
-    //   subject: subject,
-    //   html: emailHtml,
-    // });
-
-
-    // Only for testing
-
-
+    // ==========================================
+    // 🚀 1. TESTING MODE CODE (Currently Active)
+    // ==========================================
     const { data, error } = await resend.emails.send({
       from: 'Best4u <onboarding@resend.dev>', 
-      to: emailsList, // <-- Direct apna email array yahan de diya
+      to: emailsList, 
       subject: subject,
       html: emailHtml,
     });
 
 
+    // ==========================================
+    // 🚀 2. FUTURE LIVE CODE (Abhi Commented hai, jab domain register ho tab uncomment karna)
+    // ==========================================
+    /*
+    const emailPayloads = emailsList.map(email => ({
+      from: 'Best4u <hello@yourdomain.com>', 
+      to: [email], 
+      subject: subject,
+      html: emailHtml,
+    }));
 
-    // Future jub depoly or domain register ho jay gi tub 
+    const { data, error } = await resend.batch.send(emailPayloads);
+    */
 
-    // 🚀 FUTURE LIVE CODE (Batch Sending)
-
-// 1. Pehle hum saare emails ka ek array of objects banayenge
-const emailPayloads = emailsList.map(email => ({
-    from: 'Best4u <hello@best4u.com>', // 🌟 Yahan aapki asli domain aayegi
-    to: [email], // Har bande ko individual email jayegi
-    subject: subject,
-    html: emailHtml,
-}));
-
-// 2. Phir hum Resend ki 'batch.send' API use karenge (emails.send ki jagah)
-const { data, error } = await resend.batch.send(emailPayloads);
 
     if (error) {
       console.error("❌ Resend API Error:", error);
@@ -108,6 +100,7 @@ const { data, error } = await resend.batch.send(emailPayloads);
     return NextResponse.json({ 
       success: true, 
       message: `${emailsList.length} subscribers ko successfully email bhej di gayi hai!`,
+      data,
     }, { status: 200 });
 
   } catch (error) {
@@ -115,7 +108,6 @@ const { data, error } = await resend.batch.send(emailPayloads);
     return NextResponse.json({ success: false, error: "Server mein koi masla aagaya hai." }, { status: 500 });
   }
 }
-
 
 
 
