@@ -1,7 +1,7 @@
 // File Path: src/app/(public)/shop/page.jsx
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   SlidersHorizontal,
@@ -18,29 +18,25 @@ export default function ShopPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // 🟢 URL PARAMS
-  const urlSearch = searchParams.get("search") || "";
-  const urlCategory = searchParams.get("category") || "";
-  const urlSort = searchParams.get("sort") || "None";
-  const isSearchActive = useMemo(() => !!urlSearch, [urlSearch]);
+  // 🟢 1. LOCAL STATES: Ab hum UI ko URL ki bajaye State se chalayenge (Instant UI Update)
+  const [currentSearch, setCurrentSearch] = useState(searchParams.get("search") || "");
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
+  const [sortBy, setSortBy] = useState(searchParams.get("sort") || "None");
 
-  // 🟢 STATES
+  const isSearchActive = currentSearch.length > 0;
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Filter States
-  const [selectedCategory, setSelectedCategory] = useState(urlCategory);
-  const [sortBy, setSortBy] = useState(urlSort);
 
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Click-Based Sort Dropdown States
   const [isSortOpen, setIsSortOpen] = useState(false);
   const sortRef = useRef(null);
 
+  // Click-outside logic for Dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (sortRef.current && !sortRef.current.contains(event.target)) {
@@ -51,15 +47,20 @@ export default function ShopPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 🟢 2. URL SYNC: Agar user back/forward button dabaye toh state khud update ho
   useEffect(() => {
-    if (isSearchActive) {
+    const newSearch = searchParams.get("search") || "";
+    setCurrentSearch(newSearch);
+    
+    if (newSearch) {
       setSelectedCategory("");
     } else {
       setSelectedCategory(searchParams.get("category") || "");
     }
     setSortBy(searchParams.get("sort") || "None"); 
-  }, [searchParams, isSearchActive]);
+  }, [searchParams]);
 
+  // Fetch Categories Sidebar
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -73,23 +74,22 @@ export default function ShopPage() {
     fetchCategories();
   }, []);
 
-  // 🟢 BUG FIX: Added explicitSearch parameter
+  // 🟢 3. CLEAN FETCH LOGIC: React State par depend karta hai, manual passing ki zaroorat nahi
   const fetchProducts = useCallback(
-    async (pageNum = 1, isLoadMore = false, explicitCat = null, explicitSort = null, explicitSearch = null) => {
+    async (pageNum = 1, isLoadMore = false) => {
       setLoading(true);
       try {
-        const catToFetch = explicitCat !== null ? explicitCat : selectedCategory;
-        const sortToFetch = explicitSort !== null ? explicitSort : sortBy;
-        const searchToFetch = explicitSearch !== null ? explicitSearch : urlSearch;
-
         const queryParams = new URLSearchParams({
           page: pageNum,
           limit: 12,
-          search: searchToFetch,
-          category: searchToFetch ? "" : catToFetch,
-          sort: sortToFetch, 
+          search: currentSearch,
+          category: currentSearch ? "" : selectedCategory,
+          sort: sortBy, 
         });
 
+
+        // , { cache: 'no-store' }
+        // 🟢 4. CACHE FIX: 'no-store' add kiya taake kisi aur page se wapas aane par purani cache na mile
         const res = await fetch(`/api/shop?${queryParams.toString()}`);
         const data = await res.json();
 
@@ -107,26 +107,27 @@ export default function ShopPage() {
         setLoading(false);
       }
     },
-    [urlSearch, selectedCategory, sortBy]
+    [currentSearch, selectedCategory, sortBy] // Dependency array update ki
   );
 
+  // Auto trigger fetch when states change
   useEffect(() => {
     setPage(1);
     fetchProducts(1, false);
   }, [fetchProducts]);
 
+  // 🟢 CATEGORY CHANGE LOGIC
   const handleCategoryChange = (slug) => {
+    setCurrentSearch(""); // Auto clear search if category is clicked
     setSelectedCategory(slug);
-    const params = new URLSearchParams(searchParams.toString());
     
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
     if (slug) params.set("category", slug);
     else params.delete("category");
     
     params.set("sort", sortBy);
     router.push(`/shop?${params.toString()}`, { scroll: false });
-
-    setPage(1);
-    fetchProducts(1, false, slug, sortBy);
   };
 
   const handleMobileApplyFilters = () => {
@@ -134,30 +135,26 @@ export default function ShopPage() {
      setIsMobileFilterOpen(false);
   };
 
+  // 🟢 CLEAR CATEGORY FILTERS
   const handleClearFilters = () => {
     setSelectedCategory("");
     setSortBy("None");
+    
     const params = new URLSearchParams(searchParams.toString());
     params.delete("category");
     params.delete("sort");
     router.push(`/shop?${params.toString()}`, { scroll: false });
     setIsMobileFilterOpen(false);
-
-    setPage(1);
-    fetchProducts(1, false, "", "None");
   };
 
-  // 🟢 BUG FIX: Manually clear state and fetch data bypassing old URL params
+  // 🟢 5. CLEAR SEARCH FIX: UI foran update karega aur URL saaf karega
   const handleClearSearchResult = () => {
+    setCurrentSearch("");
     setSelectedCategory("");
     setSortBy("None");
-    setPage(1);
     setIsMobileFilterOpen(false);
     
-    router.push("/shop", { scroll: false });
-
-    // Force fetch with empty search, category, and sorting
-    fetchProducts(1, false, "", "None", "");
+    router.push("/shop", { scroll: false }); 
   };
 
   const filterSidebarContent = (
@@ -176,7 +173,7 @@ export default function ShopPage() {
         <div className="bg-sage/5 border border-sage/20 rounded-2xl p-5 text-center">
             <SearchX size={28} className="text-sage mx-auto mb-3 opacity-80" />
             <h3 className="text-sm font-bold text-sage-dark mb-1">Search Results</h3>
-            <p className="text-xs text-sage-dark/70 mb-5 break-words">Showing items for "{urlSearch}"</p>
+            <p className="text-xs text-sage-dark/70 mb-5 break-words">Showing items for "{currentSearch}"</p>
             <button
                 onClick={handleClearSearchResult}
                 className="w-full flex items-center justify-center gap-2 bg-sage hover:bg-sage-dark text-white py-2.5 rounded-xl text-sm font-bold transition-all shadow-sm"
@@ -263,21 +260,21 @@ export default function ShopPage() {
           <div className="flex items-center gap-2 text-xs font-medium text-sage-light mb-5">
             <Link href="/" className="hover:text-sage transition-colors">Home</Link>
             <span>›</span>
-            <Link href="/shop" className={`hover:text-sage transition-colors ${!urlCategory && !urlSearch ? 'text-sage-dark font-bold pointer-events-none' : ''}`}>Shop</Link>
+            <Link href="/shop" className={`hover:text-sage transition-colors ${!selectedCategory && !currentSearch ? 'text-sage-dark font-bold pointer-events-none' : ''}`}>Shop</Link>
             
-            {(urlCategory || urlSearch) && <span>›</span>}
+            {(selectedCategory || currentSearch) && <span>›</span>}
             
-            {urlSearch ? (
-              <span className="text-sage-dark font-bold truncate max-w-[200px] sm:max-w-xs">Search: "{urlSearch}"</span>
-            ) : urlCategory ? (
-              <span className="text-sage-dark font-bold capitalize truncate max-w-[200px] sm:max-w-xs">{urlCategory.replace(/-/g, " ")}</span>
+            {currentSearch ? (
+              <span className="text-sage-dark font-bold truncate max-w-[200px] sm:max-w-xs">Search: "{currentSearch}"</span>
+            ) : selectedCategory ? (
+              <span className="text-sage-dark font-bold capitalize truncate max-w-[200px] sm:max-w-xs">{selectedCategory.replace(/-/g, " ")}</span>
             ) : null}
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-serif font-bold text-sage-dark mb-2">
-            {urlSearch ? `Curated results for "${urlSearch}"` : 
-             urlSort !== "None" ? `${urlSort}` :
-             urlCategory ? `Category: ${urlCategory.replace(/-/g, " ")}` : 
+            {currentSearch ? `Curated results for "${currentSearch}"` : 
+             sortBy !== "None" ? `${sortBy}` :
+             selectedCategory ? `Category: ${selectedCategory.replace(/-/g, " ")}` : 
              "Mindful Product Catalog"}
           </h1>
           <p className="text-sage-light text-sm sm:text-base capitalize">
@@ -338,7 +335,7 @@ export default function ShopPage() {
                           onClick={() => {
                             setSortBy(sortOption);
                             setIsSortOpen(false);
-                            setPage(1);
+                            
                             const params = new URLSearchParams(searchParams.toString());
                             if (sortOption === "None") {
                               params.delete("sort");
@@ -346,8 +343,6 @@ export default function ShopPage() {
                               params.set("sort", sortOption);
                             }
                             router.push(`/shop?${params.toString()}`, { scroll: false });
-                            
-                            fetchProducts(1, false, selectedCategory, sortOption);
                           }}
                           className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${sortBy === sortOption ? "bg-sage text-white font-semibold" : "text-sage-dark hover:bg-cream"}`}
                         >
@@ -396,7 +391,7 @@ export default function ShopPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-cream-dark border-dashed mt-4">
                 <p className="text-sage-light text-lg font-medium px-4 text-center">
-                  No mindful recommendations found {isSearchActive ? `for "${urlSearch}"` : `matching your criteria`}.
+                  No mindful recommendations found {isSearchActive ? `for "${currentSearch}"` : `matching your criteria`}.
                 </p>
                 {isSearchActive ? (
                   <button onClick={handleClearSearchResult} className="mt-4 flex items-center gap-2 bg-sage hover:bg-sage-dark text-white py-2.5 px-6 rounded-xl font-bold transition-colors shadow-sm">
