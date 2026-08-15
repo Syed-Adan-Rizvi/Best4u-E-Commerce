@@ -25,6 +25,9 @@ import {
 import connectDB from "@/lib/db";
 import Category from "@/models/Category";
 
+export const revalidate = 60;
+
+
 // 🟢 THE ENHANCED MAGIC DICTIONARY: Automatically pick an icon based on category name
 const getCategoryIcon = (categoryName) => {
   const name = categoryName.toLowerCase();

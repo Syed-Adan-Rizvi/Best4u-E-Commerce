@@ -16,7 +16,7 @@
 /* 🌟 THE MAGIC FIX: Scale entire website to 90% for a premium, compact look */
 @layer base {
   html {
-    font-size: 90%; /* Default 100% (16px) hota hai, ab approx 14.4px ho jayega */
+    font-size: 85%; /* Default 100% (16px) hota hai, ab approx 14.4px ho jayega */
   }
 }
 

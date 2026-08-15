@@ -41,9 +41,8 @@ export async function GET(req) {
 
     query.price = { $gte: minPrice, $lte: maxPrice };
 
-    let sortOptions = {}; 
 
-    // 🟢 BUG FIX: To lower case to prevent case sensitivity issues
+    let sortOptions = {}; 
     const sortVal = sort.toLowerCase();
 
     if (sortVal === "price: low to high") {
@@ -57,8 +56,29 @@ export async function GET(req) {
        sortOptions = { createdAt: -1 }; 
     } 
     else if (sortVal === "trending deals") {
+       // 🟢 LOGIC UPDATE: Sirf > 0 clicks wale products API mein bhejo
+       query.totalClicks = { $gt: 0 }; 
        sortOptions = { totalClicks: -1, createdAt: -1 }; 
     }
+
+    // let sortOptions = {}; 
+
+    // // 🟢 BUG FIX: To lower case to prevent case sensitivity issues
+    // const sortVal = sort.toLowerCase();
+
+    // if (sortVal === "price: low to high") {
+    //   sortOptions = { price: 1 };
+    // } else if (sortVal === "price: high to low") {
+    //   sortOptions = { price: -1 };
+    // } else if (sortVal === "newest") {
+    //    sortOptions = { createdAt: -1 };
+    // } else if (sortVal === "featured") {
+    //    query.isFeatured = true; 
+    //    sortOptions = { createdAt: -1 }; 
+    // } 
+    // else if (sortVal === "trending deals") {
+    //    sortOptions = { totalClicks: -1, createdAt: -1 }; 
+    // }
 
     const options = {
       page,
@@ -69,7 +89,7 @@ export async function GET(req) {
     };
 
     const result = await Product.paginate(query, options);
-
+// 🟢 FIX: Headers add kar diye taake API kabhi cache na ho
     return NextResponse.json({
       success: true,
       products: result.docs,

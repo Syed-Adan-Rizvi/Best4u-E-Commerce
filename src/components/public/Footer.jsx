@@ -13,6 +13,9 @@ import {
   FaLinkedin
 } from "react-icons/fa";
 
+export const revalidate = 60;
+
+
 export default function Footer({ settings }) {
   
   const getSocialIcon = (platformName, customIconUrl) => {
