@@ -18,7 +18,7 @@ export default function ShopPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // 🟢 1. LOCAL STATES: Ab hum UI ko URL ki bajaye State se chalayenge (Instant UI Update)
+  // 🟢 1. LOCAL STATES: UI Instant update ke liye
   const [currentSearch, setCurrentSearch] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "None");
@@ -47,7 +47,7 @@ export default function ShopPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 🟢 2. URL SYNC: Agar user back/forward button dabaye toh state khud update ho
+  // 🟢 2. URL SYNC: Browser refresh ya back button ke liye
   useEffect(() => {
     const newSearch = searchParams.get("search") || "";
     setCurrentSearch(newSearch);
@@ -74,7 +74,7 @@ export default function ShopPage() {
     fetchCategories();
   }, []);
 
-  // 🟢 3. CLEAN FETCH LOGIC: React State par depend karta hai, manual passing ki zaroorat nahi
+  // 🟢 3. CLEAN FETCH LOGIC
   const fetchProducts = useCallback(
     async (pageNum = 1, isLoadMore = false) => {
       setLoading(true);
@@ -87,9 +87,6 @@ export default function ShopPage() {
           sort: sortBy, 
         });
 
-
-        // , { cache: 'no-store' }
-        // 🟢 4. CACHE FIX: 'no-store' add kiya taake kisi aur page se wapas aane par purani cache na mile
         const res = await fetch(`/api/shop?${queryParams.toString()}`, { cache: 'no-store' });
         const data = await res.json();
 
@@ -107,27 +104,29 @@ export default function ShopPage() {
         setLoading(false);
       }
     },
-    [currentSearch, selectedCategory, sortBy] // Dependency array update ki
+    [currentSearch, selectedCategory, sortBy] // Dependency update kar di
   );
 
-  // Auto trigger fetch when states change
+  // Auto trigger fetch when state changes
   useEffect(() => {
     setPage(1);
     fetchProducts(1, false);
   }, [fetchProducts]);
 
-  // 🟢 CATEGORY CHANGE LOGIC
+  // 🟢 CATEGORY CHANGE FIX
   const handleCategoryChange = (slug) => {
-    setCurrentSearch(""); // Auto clear search if category is clicked
+    setCurrentSearch(""); 
     setSelectedCategory(slug);
+    setPage(1);
     
     const params = new URLSearchParams(searchParams.toString());
     params.delete("search");
     if (slug) params.set("category", slug);
     else params.delete("category");
-    
     params.set("sort", sortBy);
-    router.push(`/shop?${params.toString()}`, { scroll: false });
+    
+    const newPath = params.toString() ? `/shop?${params.toString()}` : "/shop";
+    router.replace(newPath, { scroll: false });
   };
 
   const handleMobileApplyFilters = () => {
@@ -135,26 +134,39 @@ export default function ShopPage() {
      setIsMobileFilterOpen(false);
   };
 
-  // 🟢 CLEAR CATEGORY FILTERS
+  // 🟢 CLEAR CATEGORY FILTERS FIX
   const handleClearFilters = () => {
     setSelectedCategory("");
     setSortBy("None");
+    setPage(1);
+    setIsMobileFilterOpen(false);
     
     const params = new URLSearchParams(searchParams.toString());
     params.delete("category");
     params.delete("sort");
-    router.push(`/shop?${params.toString()}`, { scroll: false });
-    setIsMobileFilterOpen(false);
+    
+    const newPath = params.toString() ? `/shop?${params.toString()}` : "/shop";
+    router.replace(newPath, { scroll: false });
   };
 
-  // 🟢 5. CLEAR SEARCH FIX: UI foran update karega aur URL saaf karega
+  // 🟢 4. THE ULTIMATE CLEAR SEARCH FIX
   const handleClearSearchResult = () => {
+    // 1. Manually update state taake UI instant 0s mein clear ho
     setCurrentSearch("");
     setSelectedCategory("");
     setSortBy("None");
+    setPage(1);
     setIsMobileFilterOpen(false);
     
-    router.push("/shop", { scroll: false }); 
+    // 2. Explicitly zabardasti URL params delete karo Next.js se
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("search");
+    params.delete("category");
+    params.delete("sort");
+    
+    // 3. router.push ki jagah router.replace use kiya (Fixes Refresh/Back Bug)
+    const newPath = params.toString() ? `/shop?${params.toString()}` : "/shop";
+    router.replace(newPath, { scroll: false }); 
   };
 
   const filterSidebarContent = (
@@ -335,6 +347,7 @@ export default function ShopPage() {
                           onClick={() => {
                             setSortBy(sortOption);
                             setIsSortOpen(false);
+                            setPage(1);
                             
                             const params = new URLSearchParams(searchParams.toString());
                             if (sortOption === "None") {
@@ -342,7 +355,9 @@ export default function ShopPage() {
                             } else {
                               params.set("sort", sortOption);
                             }
-                            router.push(`/shop?${params.toString()}`, { scroll: false });
+                            
+                            const newPath = params.toString() ? `/shop?${params.toString()}` : "/shop";
+                            router.replace(newPath, { scroll: false });
                           }}
                           className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${sortBy === sortOption ? "bg-sage text-white font-semibold" : "text-sage-dark hover:bg-cream"}`}
                         >
