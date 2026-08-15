@@ -20,30 +20,55 @@ export async function GET(req) {
 
     await connectDB();
 
-    let query = { isActive: true };
-
-    if (search && search.length >= 2) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { tags: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } }
-      ];
-    }
-
+    // 1️⃣ CATEGORY LOOKUP (Agar category select ki gayi hai)
+    let categoryId = null;
     if (categorySlug) {
       const categoryDoc = await Category.findOne({ slug: categorySlug }).lean();
       if (categoryDoc) {
-        query.category = categoryDoc._id; 
+        categoryId = categoryDoc._id; 
       } else {
         return NextResponse.json({ success: true, products: [], pagination: {} }, { status: 200 });
       }
     }
 
-    query.price = { $gte: minPrice, $lte: maxPrice };
+    // 🚀 AGGREGATION PIPELINE START
+    const pipeline = [];
 
+    // 2️⃣ THE ATLAS SEARCH MAGIC (Auto-correct & Lightning Fast)
+    // Yeh pipeline ka sab se pehla step hona zaroori hai
+    if (search && search.length >= 2) {
+      pipeline.push({
+        $search: {
+          index: "default",
+          compound: {
+            should: [
+              {
+                autocomplete: {
+                  query: search,
+                  path: "title",
+                  fuzzy: { maxEdits: 1 } // "bead" ko "bed" khud bana dega
+                }
+              },
+              {
+                text: {
+                  query: search,
+                  path: ["description", "tags"],
+                  fuzzy: { maxEdits: 1 }
+                }
+              }
+            ]
+          }
+        }
+      });
+    }
 
-    let sortOptions = {}; 
+    // 3️⃣ MATCH STAGE (Filters apply karna)
+    let matchStage = { isActive: true };
+    if (categoryId) matchStage.category = categoryId;
+    matchStage.price = { $gte: minPrice, $lte: maxPrice };
+
     const sortVal = sort.toLowerCase();
+    let sortOptions = {}; 
 
     if (sortVal === "price: low to high") {
       sortOptions = { price: 1 };
@@ -52,62 +77,213 @@ export async function GET(req) {
     } else if (sortVal === "newest") {
        sortOptions = { createdAt: -1 };
     } else if (sortVal === "featured") {
-       query.isFeatured = true; 
+       matchStage.isFeatured = true; 
        sortOptions = { createdAt: -1 }; 
     } 
     else if (sortVal === "trending deals") {
-       // 🟢 LOGIC UPDATE: Sirf > 0 clicks wale products API mein bhejo
-       query.totalClicks = { $gt: 0 }; 
+       matchStage.totalClicks = { $gt: 0 }; 
        sortOptions = { totalClicks: -1, createdAt: -1 }; 
     }
 
-    // let sortOptions = {}; 
+    pipeline.push({ $match: matchStage });
 
-    // // 🟢 BUG FIX: To lower case to prevent case sensitivity issues
-    // const sortVal = sort.toLowerCase();
+    // 4️⃣ SORTING STAGE
+    if (Object.keys(sortOptions).length > 0) {
+      pipeline.push({ $sort: sortOptions });
+    } else if (!search || search.length < 2) {
+      // Agar search nahi ho rahi toh default newest products pehle aayenge
+      pipeline.push({ $sort: { createdAt: -1 } });
+    }
+    // 💡 PRO TIP: Agar "Search" active hai aur "Sort" 'None' hai, 
+    // toh hum koi sort nahi lagayenge, taake Atlas Search ki "Relevance Score" 
+    // apply ho (Yani sab se best match wala product sab se upar aaye!)
 
-    // if (sortVal === "price: low to high") {
-    //   sortOptions = { price: 1 };
-    // } else if (sortVal === "price: high to low") {
-    //   sortOptions = { price: -1 };
-    // } else if (sortVal === "newest") {
-    //    sortOptions = { createdAt: -1 };
-    // } else if (sortVal === "featured") {
-    //    query.isFeatured = true; 
-    //    sortOptions = { createdAt: -1 }; 
-    // } 
-    // else if (sortVal === "trending deals") {
-    //    sortOptions = { totalClicks: -1, createdAt: -1 }; 
-    // }
+    // 5️⃣ PAGINATION & POPULATION (Using $facet)
+    const skip = (page - 1) * limit;
 
-    const options = {
-      page,
-      limit,
-      sort: Object.keys(sortOptions).length > 0 ? sortOptions : undefined,
-      populate: { path: "category", select: "name slug" },
-      lean: true
-    };
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "totalDocs" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          // Category data populate karna (kyunke aggregate mein direct populate nahi chalta)
+          {
+            $lookup: {
+              from: "categories", // Database mein collection ka naam (usually lowercase plural)
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryDetails"
+            }
+          },
+          {
+            $addFields: {
+              category: { $arrayElemAt: ["$categoryDetails", 0] } // Array ko object mein convert karna
+            }
+          },
+          {
+            $project: {
+              categoryDetails: 0 // Faltu array ko hide kar dena
+            }
+          }
+        ]
+      }
+    });
 
-    const result = await Product.paginate(query, options);
-// 🟢 FIX: Headers add kar diye taake API kabhi cache na ho
+    // Run the pipeline
+    const [result] = await Product.aggregate(pipeline);
+
+    // 6️⃣ FORMATTING RESPONSE (Aapke frontend ke hisaab se)
+    const totalDocs = result.metadata[0]?.totalDocs || 0;
+    const products = result.data || [];
+    const totalPages = Math.ceil(totalDocs / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    // Headers add kar diye taake API kabhi cache na ho
     return NextResponse.json({
       success: true,
-      products: result.docs,
+      products: products,
       pagination: {
-        totalDocs: result.totalDocs,
-        limit: result.limit,
-        totalPages: result.totalPages,
-        page: result.page,
-        hasNextPage: result.hasNextPage,
-        hasPrevPage: result.hasPrevPage,
+        totalDocs,
+        limit,
+        totalPages,
+        page,
+        hasNextPage,
+        hasPrevPage,
       }
-    }, { status: 200 });
+    }, { status: 200, headers: { "Cache-Control": "no-store" } });
 
   } catch (error) {
     console.error("❌ [API /shop] Error:", error.message);
     return NextResponse.json({ success: false, error: "Shop data lane mein masla aya." }, { status: 500 });
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// abhi tak sahi hai 
+// // File Path: src/app/api/shop/route.js
+// import { NextResponse } from "next/server";
+// import connectDB from "@/lib/db";
+// import Product from "@/models/Product";
+// import Category from "@/models/Category"; 
+
+// export const dynamic = "force-dynamic";
+
+// export async function GET(req) {
+//   try {
+//     const { searchParams } = new URL(req.url);
+    
+//     const page = parseInt(searchParams.get("page")) || 1;
+//     const limit = parseInt(searchParams.get("limit")) || 12;
+//     const search = searchParams.get("search") || "";
+//     const categorySlug = searchParams.get("category") || "";
+//     const minPrice = parseFloat(searchParams.get("minPrice")) || 0;
+//     const maxPrice = parseFloat(searchParams.get("maxPrice")) || Number.MAX_SAFE_INTEGER;
+//     const sort = searchParams.get("sort") || "None"; 
+
+//     await connectDB();
+
+//     let query = { isActive: true };
+
+//     if (search && search.length >= 2) {
+//       query.$or = [
+//         { title: { $regex: search, $options: "i" } },
+//         { tags: { $regex: search, $options: "i" } },
+//         { description: { $regex: search, $options: "i" } }
+//       ];
+//     }
+
+//     if (categorySlug) {
+//       const categoryDoc = await Category.findOne({ slug: categorySlug }).lean();
+//       if (categoryDoc) {
+//         query.category = categoryDoc._id; 
+//       } else {
+//         return NextResponse.json({ success: true, products: [], pagination: {} }, { status: 200 });
+//       }
+//     }
+
+//     query.price = { $gte: minPrice, $lte: maxPrice };
+
+
+//     let sortOptions = {}; 
+//     const sortVal = sort.toLowerCase();
+
+//     if (sortVal === "price: low to high") {
+//       sortOptions = { price: 1 };
+//     } else if (sortVal === "price: high to low") {
+//       sortOptions = { price: -1 };
+//     } else if (sortVal === "newest") {
+//        sortOptions = { createdAt: -1 };
+//     } else if (sortVal === "featured") {
+//        query.isFeatured = true; 
+//        sortOptions = { createdAt: -1 }; 
+//     } 
+//     else if (sortVal === "trending deals") {
+//        // 🟢 LOGIC UPDATE: Sirf > 0 clicks wale products API mein bhejo
+//        query.totalClicks = { $gt: 0 }; 
+//        sortOptions = { totalClicks: -1, createdAt: -1 }; 
+//     }
+
+//     // let sortOptions = {}; 
+
+//     // // 🟢 BUG FIX: To lower case to prevent case sensitivity issues
+//     // const sortVal = sort.toLowerCase();
+
+//     // if (sortVal === "price: low to high") {
+//     //   sortOptions = { price: 1 };
+//     // } else if (sortVal === "price: high to low") {
+//     //   sortOptions = { price: -1 };
+//     // } else if (sortVal === "newest") {
+//     //    sortOptions = { createdAt: -1 };
+//     // } else if (sortVal === "featured") {
+//     //    query.isFeatured = true; 
+//     //    sortOptions = { createdAt: -1 }; 
+//     // } 
+//     // else if (sortVal === "trending deals") {
+//     //    sortOptions = { totalClicks: -1, createdAt: -1 }; 
+//     // }
+
+//     const options = {
+//       page,
+//       limit,
+//       sort: Object.keys(sortOptions).length > 0 ? sortOptions : undefined,
+//       populate: { path: "category", select: "name slug" },
+//       lean: true
+//     };
+
+//     const result = await Product.paginate(query, options);
+// // 🟢 FIX: Headers add kar diye taake API kabhi cache na ho
+//     return NextResponse.json({
+//       success: true,
+//       products: result.docs,
+//       pagination: {
+//         totalDocs: result.totalDocs,
+//         limit: result.limit,
+//         totalPages: result.totalPages,
+//         page: result.page,
+//         hasNextPage: result.hasNextPage,
+//         hasPrevPage: result.hasPrevPage,
+//       }
+//     }, { status: 200 });
+
+//   } catch (error) {
+//     console.error("❌ [API /shop] Error:", error.message);
+//     return NextResponse.json({ success: false, error: "Shop data lane mein masla aya." }, { status: 500 });
+//   }
+// }
 
 
 
