@@ -126,9 +126,8 @@ export default function ShopPage() {
     else params.delete("category");
     params.set("sort", sortBy);
     
-    // NATIVE BROWSER API: Push new URL
     const newPath = params.toString() ? `/shop?${params.toString()}` : "/shop";
-    window.history.pushState(null, '', newPath);
+    router.push(newPath, { scroll: false });
     
     fetchProducts(1, false, slug, sortBy, "");
   };
@@ -144,29 +143,21 @@ export default function ShopPage() {
     setPage(1);
     setIsMobileFilterOpen(false);
     
-    // NATIVE BROWSER API: Clean URL completely
-    window.history.replaceState(null, '', '/shop');
+    router.push("/shop", { scroll: false });
     
     fetchProducts(1, false, "", "None", currentSearch);
   };
 
-  // 🚀 4. BULLETPROOF CLEAR SEARCH
+  // 🚀 4. THE ULTIMATE CLEAR SEARCH FIX (Pure Next.js Router Router)
   const handleClearSearchResult = () => {
-    // A. Local State instantly wipe out karo
     setCurrentSearch("");
     setSelectedCategory("");
     setSortBy("None");
     setPage(1);
     setIsMobileFilterOpen(false);
     
-    // B. Native Browser API: URL ko forcefully reset karo (Next.js bypass)
-    window.history.replaceState(null, '', '/shop');
+    router.push("/shop", { scroll: false });
     
-    // C. Next.js router ko bhi forcefully same path par bhejo (taake cache clear ho)
-    router.replace("/shop", { scroll: false });
-    router.refresh(); // Hard reset for Next.js app router cache
-    
-    // D. Fetch fresh default data
     fetchProducts(1, false, "", "None", "");
   };
 
@@ -262,11 +253,11 @@ export default function ShopPage() {
         }
         .animate-fade-up {
           animation: fadeUpIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          opacity: 0; /* Starts hidden before animation kicks in */
+          opacity: 0;
         }
       `}</style>
 
-      {/* 🟢 HEADER WITH DYNAMIC BREADCRUMBS */}
+      {/* HEADER WITH DYNAMIC BREADCRUMBS */}
       <div className="bg-transparent py-8 sm:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
@@ -358,7 +349,7 @@ export default function ShopPage() {
                             }
                             
                             const newPath = params.toString() ? `/shop?${params.toString()}` : "/shop";
-                            window.history.pushState(null, '', newPath); // Browser update
+                            router.push(newPath, { scroll: false });
                             
                             fetchProducts(1, false, selectedCategory, sortOption, currentSearch);
                           }}
