@@ -90,7 +90,7 @@ export default function ShopPage() {
 
         // , { cache: 'no-store' }
         // 🟢 4. CACHE FIX: 'no-store' add kiya taake kisi aur page se wapas aane par purani cache na mile
-        const res = await fetch(`/api/shop?${queryParams.toString()}`);
+        const res = await fetch(`/api/shop?${queryParams.toString()}`, { cache: 'no-store' });
         const data = await res.json();
 
         if (data.success) {
